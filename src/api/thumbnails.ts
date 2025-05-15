@@ -67,6 +67,8 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
 
   const fileBuffer = await file.arrayBuffer();
 
+  
+
   let videoDetails = getVideo(cfg.db, videoId);
 
   if (!videoDetails){
@@ -77,10 +79,11 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
     throw new UserForbiddenError("Not the owner of the video");
   }
 
+  const dbBuffer = Buffer.from(fileBuffer).toString("base64");
 
   videoThumbnails.set(videoId, {data: fileBuffer, mediaType: mediaType});
 
-  const thumbnailUrl = `http://localhost:${cfg.port}/api/thumbnails/${videoId}`;
+  const thumbnailUrl = `data:${mediaType};base64,${dbBuffer}`;
 
 
   videoDetails.thumbnailURL = thumbnailUrl;
