@@ -4,6 +4,7 @@ import { getVideo, updateVideo } from "../db/videos";
 import type { ApiConfig } from "../config";
 import type { BunRequest } from "bun";
 import { BadRequestError, NotFoundError, UserForbiddenError } from "./errors";
+import path from "path";
 
 type Thumbnail = {
   data: ArrayBuffer;
@@ -67,7 +68,6 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
 
   const fileBuffer = await file.arrayBuffer();
 
-  
 
   let videoDetails = getVideo(cfg.db, videoId);
 
@@ -79,11 +79,17 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
     throw new UserForbiddenError("Not the owner of the video");
   }
 
-  const dbBuffer = Buffer.from(fileBuffer).toString("base64");
+  const fileType = file.type;
 
-  videoThumbnails.set(videoId, {data: fileBuffer, mediaType: mediaType});
+  const fileExtension = fileType.split("/")[1];
 
-  const thumbnailUrl = `data:${mediaType};base64,${dbBuffer}`;
+  const fileName = `${videoId}.${fileExtension}`;
+
+  const filePath = path.join(cfg.assetsRoot, fileName);
+
+  await Bun.write(filePath, fileBuffer);
+
+  const thumbnailUrl = `http://localhost:${cfg.port}/assets/${fileName}`;
 
 
   videoDetails.thumbnailURL = thumbnailUrl;
