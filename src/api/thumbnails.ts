@@ -5,6 +5,7 @@ import type { ApiConfig } from "../config";
 import type { BunRequest } from "bun";
 import { BadRequestError, NotFoundError, UserForbiddenError } from "./errors";
 import path from "path";
+import { getFileExtension, getFileURL } from "./assets";
 
 type Thumbnail = {
   data: ArrayBuffer;
@@ -81,7 +82,11 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
 
   const fileType = file.type;
 
-  const fileExtension = fileType.split("/")[1];
+  const fileExtension = getFileExtension(fileType);
+
+  if (fileExtension !== "jpeg" && fileExtension !== "png"){
+    throw new BadRequestError("Invalid filetype, only png and jpeg are accepted.")
+  }
 
   const fileName = `${videoId}.${fileExtension}`;
 
@@ -89,7 +94,7 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
 
   await Bun.write(filePath, fileBuffer);
 
-  const thumbnailUrl = `http://localhost:${cfg.port}/assets/${fileName}`;
+  const thumbnailUrl = getFileURL(cfg, fileName);
 
 
   videoDetails.thumbnailURL = thumbnailUrl;
