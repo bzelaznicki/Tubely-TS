@@ -5,7 +5,7 @@ import type { ApiConfig } from "../config";
 import type { BunRequest } from "bun";
 import { BadRequestError, NotFoundError, UserForbiddenError } from "./errors";
 import path from "path";
-import { getFileExtension, getFileURL } from "./assets";
+import { getFileExtension, getFileName, getFileURL } from "./assets";
 import { randomBytes } from "crypto";
 
 type Thumbnail = {
@@ -66,8 +66,6 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
     throw new BadRequestError("File too large");
   }
 
-  const mediaType = file.type;
-
   const fileBuffer = await file.arrayBuffer();
 
 
@@ -89,8 +87,7 @@ export async function handlerUploadThumbnail(cfg: ApiConfig, req: BunRequest) {
     throw new BadRequestError("Invalid filetype, only png and jpeg are accepted.")
   }
 
-  const filePrefix = randomBytes(32).toString("base64url");
-  const fileName = `${filePrefix}.${fileExtension}`;
+  const fileName = getFileName(fileExtension);
 
   const filePath = path.join(cfg.assetsRoot, fileName);
 
