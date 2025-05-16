@@ -5,7 +5,7 @@ import { S3Client, type BunRequest } from "bun";
 import { getBearerToken, validateJWT } from "../auth";
 import { getVideo, updateVideo } from "../db/videos";
 import { BadRequestError, NotFoundError, UserForbiddenError } from "./errors";
-import { getFileExtension, getFileName } from "./assets";
+import { getFileExtension, getFileName, getVideoAspectRatio } from "./assets";
 import path from "path";
 
 export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
@@ -68,11 +68,21 @@ export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
   
   tempFile = Bun.file(filePath);
 
-  const s3File = cfg.s3Client.file(fileName, {type: mediaType});
+  const aspectRatio = await getVideoAspectRatio(filePath);
+
+  console.log(`${filePath}: ${aspectRatio}`);
+
+    
+  const s3FileName = `${aspectRatio}/${fileName};`
+
+  const s3File = cfg.s3Client.file(s3FileName, {type: mediaType});
 
   const s3Buffer = await tempFile.arrayBuffer();
 
   await s3File.write(s3Buffer);
+
+
+
 
   const videoURL = `https://${cfg.s3Bucket}.s3.${cfg.s3Region}.amazonaws.com/${s3File.name}`;
 
@@ -83,7 +93,7 @@ export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
   return respondWithJSON(200, videoDetails);
   } catch (error) {
     if (error instanceof Error){
-      throw new BadRequestError("Upload failed");
+      throw new BadRequestError(`Upload failed: ${error.message}`);
     }
   } finally {
   if (tempFile){
