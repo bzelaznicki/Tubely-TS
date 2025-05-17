@@ -5,7 +5,7 @@ import { S3Client, type BunRequest } from "bun";
 import { getBearerToken, validateJWT } from "../auth";
 import { getVideo, updateVideo } from "../db/videos";
 import { BadRequestError, NotFoundError, UserForbiddenError } from "./errors";
-import { getFileExtension, getFileName, getVideoAspectRatio } from "./assets";
+import { getFileExtension, getFileName, getVideoAspectRatio, processVideoForFastStart } from "./assets";
 import path from "path";
 
 export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
@@ -66,14 +66,15 @@ export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
 
   await Bun.write(filePath, fileBuffer);
   
-  tempFile = Bun.file(filePath);
+  
 
   const aspectRatio = await getVideoAspectRatio(filePath);
 
-  console.log(`${filePath}: ${aspectRatio}`);
+  const processedFile = await processVideoForFastStart(filePath);
 
+  tempFile = Bun.file(processedFile);
     
-  const s3FileName = `${aspectRatio}/${fileName};`
+  const s3FileName = `${aspectRatio}/${fileName}`
 
   const s3File = cfg.s3Client.file(s3FileName, {type: mediaType});
 

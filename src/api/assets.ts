@@ -55,7 +55,7 @@ export async function getVideoAspectRatio(filePath: string){
 }
 
 
-function getAspectRatio(width: number, height: number): string {
+export function getAspectRatio(width: number, height: number): string {
   const ratio = width / height;
   const LANDSCAPE = 16 / 9;
   const PORTRAIT = 9 / 16;
@@ -69,4 +69,23 @@ function getAspectRatio(width: number, height: number): string {
   }
 
   return aspectRatio;
+}
+
+export async function processVideoForFastStart(inputFilePath: string){
+  const outputFilePath = `${inputFilePath}.processed`;
+
+  const ffmpeg = Bun.spawn(["ffmpeg", "-i", inputFilePath, "-movflags", "faststart", "-map_metadata", "0", "-codec", "copy", "-f", "mp4", outputFilePath],
+    {
+      stdout: "pipe",
+      stderr: "pipe",
+    },);
+  const outputText = await new Response(ffmpeg.stdout).text();
+  const errorText = await new Response(ffmpeg.stderr).text();
+
+  const exitCode = await ffmpeg.exited;
+
+  if (exitCode !== 0){
+    throw new Error(`ffmpeg error: ${errorText}`);
+  }
+  return outputFilePath;
 }
