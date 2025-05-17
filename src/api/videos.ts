@@ -3,7 +3,7 @@ import { respondWithJSON } from "./json";
 import { type ApiConfig } from "../config";
 import { S3Client, type BunRequest } from "bun";
 import { getBearerToken, validateJWT } from "../auth";
-import { getVideo, updateVideo } from "../db/videos";
+import { getVideo, updateVideo, type Video } from "../db/videos";
 import { BadRequestError, NotFoundError, UserForbiddenError } from "./errors";
 import { getFileExtension, getFileName, getVideoAspectRatio, processVideoForFastStart } from "./assets";
 import path from "path";
@@ -85,13 +85,15 @@ export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
 
 
 
-  const videoURL = `https://${cfg.s3Bucket}.s3.${cfg.s3Region}.amazonaws.com/${s3File.name}`;
+  const videoURL = `${s3File.name}`;
 
   videoDetails.videoURL = videoURL;
 
   updateVideo(cfg.db, videoDetails);
 
-  return respondWithJSON(200, videoDetails);
+  const presignedVideo = dbVideoToSignedVideo(cfg, videoDetails)
+
+  return respondWithJSON(200, presignedVideo);
   } catch (error) {
     if (error instanceof Error){
       throw new BadRequestError(`Upload failed: ${error.message}`);
@@ -102,5 +104,23 @@ export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
   }
   }
 
+
+}
+
+function generatePresignedURL(cfg: ApiConfig, key: string, expireTime: number){
+  const presignedURL = cfg.s3Client.presign(key, {expiresIn: expireTime});
+
+  return presignedURL;
+}
+
+export function dbVideoToSignedVideo(cfg: ApiConfig, video: Video){
+
+  if (!video.videoURL){
+    return video;
+  }
+  const presignedURL = generatePresignedURL(cfg, video.videoURL, 3600);
+  
+  video.videoURL = presignedURL;
+  return video;
 
 }

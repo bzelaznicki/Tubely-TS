@@ -79,7 +79,6 @@ export async function processVideoForFastStart(inputFilePath: string){
       stdout: "pipe",
       stderr: "pipe",
     },);
-  const outputText = await new Response(ffmpeg.stdout).text();
   const errorText = await new Response(ffmpeg.stderr).text();
 
   const exitCode = await ffmpeg.exited;
