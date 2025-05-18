@@ -85,15 +85,14 @@ export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
 
 
 
-  const videoURL = `${s3File.name}`;
+  const videoURL = `${cfg.s3CfDistribution}/${s3File.name}`;
 
   videoDetails.videoURL = videoURL;
 
   updateVideo(cfg.db, videoDetails);
 
-  const presignedVideo = dbVideoToSignedVideo(cfg, videoDetails)
 
-  return respondWithJSON(200, presignedVideo);
+  return respondWithJSON(200, videoDetails);
   } catch (error) {
     if (error instanceof Error){
       throw new BadRequestError(`Upload failed: ${error.message}`);
@@ -107,20 +106,3 @@ export async function handlerUploadVideo(cfg: ApiConfig, req: BunRequest) {
 
 }
 
-function generatePresignedURL(cfg: ApiConfig, key: string, expireTime: number){
-  const presignedURL = cfg.s3Client.presign(key, {expiresIn: expireTime});
-
-  return presignedURL;
-}
-
-export function dbVideoToSignedVideo(cfg: ApiConfig, video: Video){
-
-  if (!video.videoURL){
-    return video;
-  }
-  const presignedURL = generatePresignedURL(cfg, video.videoURL, 3600);
-  
-  video.videoURL = presignedURL;
-  return video;
-
-}
